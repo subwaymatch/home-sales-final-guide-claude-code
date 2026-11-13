@@ -6,18 +6,53 @@
   <title>College-town home sales: two questions</title>
   <!-- An empty icon, so the browser doesn't log an error looking for favicon.ico -->
   <link rel="icon" href="data:,">
+  <script>
+    // Apply a saved light or dark choice before the page paints, so there is no flash.
+    try {
+      var savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      }
+    } catch (e) { /* storage unavailable: use the system setting */ }
+  </script>
   <style>
-    :root { color-scheme: light dark; --bar: #2f6690; --muted: #5f6368; --rule: #d0d3d8; }
+    /* Light is the default. Without a saved choice, dark follows the system setting.
+       The toggle sets data-theme on <html> to "light" or "dark". */
+    :root, html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #ffffff; --fg: #1f2328; --muted: #5f6368; --rule: #d0d3d8; --bar: #2f6690;
+    }
     @media (prefers-color-scheme: dark) {
-      :root { --bar: #6fa8dc; --muted: #a8adb3; --rule: #3c4043; }
+      html:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #1b1e22; --fg: #e8eaed; --muted: #a8adb3; --rule: #3c4043; --bar: #6fa8dc;
+      }
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #1b1e22; --fg: #e8eaed; --muted: #a8adb3; --rule: #3c4043; --bar: #6fa8dc;
     }
     body {
       max-width: 52rem;
       margin: 0 auto;
-      padding: 2.5rem 1rem 3rem;
+      padding: 1.5rem 1rem 3rem;
       font-family: system-ui, sans-serif;
       line-height: 1.5;
+      background: var(--bg);
+      color: var(--fg);
     }
+    .top { display: flex; justify-content: flex-end; }
+    #theme-toggle {
+      font: inherit;
+      font-size: 0.9rem;
+      color: var(--fg);
+      background: var(--bg);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 0.35rem 0.8rem;
+      cursor: pointer;
+    }
+    #theme-toggle:hover { border-color: var(--muted); }
     h1 { font-size: 1.9rem; margin-bottom: 0.25rem; }
     h2 { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); font-size: 1.4rem; }
     h3 { font-size: 1.05rem; margin-top: 1.75rem; }
@@ -53,6 +88,9 @@
 </head>
 <body>
   <main>
+    <div class="top">
+      <button id="theme-toggle" type="button" aria-live="polite">Switch to dark mode</button>
+    </div>
     <h1>College-town home sales: two questions</h1>
     <p>
       This report answers two questions about the college-town home sales dataset. Every number on
@@ -277,6 +315,26 @@
       document.getElementById('method').hidden = false;
       setText('status', 'Loaded ' + count(data.rowsRead) + ' sales from ' + DATA_URL + ' and computed both answers below.');
     }
+
+    // Light and dark mode toggle. The current mode is the one showing now,
+    // whether it was chosen with the button or comes from the system setting.
+    var root = document.documentElement;
+    var toggle = document.getElementById('theme-toggle');
+    function currentTheme() {
+      var saved = root.getAttribute('data-theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function showToggleLabel() {
+      toggle.textContent = currentTheme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+    toggle.addEventListener('click', function () {
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) { /* not saved; applies to this visit only */ }
+      showToggleLabel();
+    });
+    showToggleLabel();
 
     fetch(DATA_URL)
       .then(function (res) {
